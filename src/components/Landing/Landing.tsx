@@ -1,49 +1,43 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
-import ThemeChangeButton from '../ThemeChangeButton';
+import ThemeChangeButton from '../Reusables/ThemeChangeButton';
 import GetStartedPopup from './GetStartedPopup';
-import Footer from '../Footer';
+import TeacherGetStartedPopup from './TeacherGetStartedPopup';
+import Footer from '../Reusables/Footer';
 import Feature from './Feature';
 import Review from './Review';
 import Typewriter from './Typewriter';
 
 const Landing: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
   };
 
-  const handleModalOpen = () => setIsModalOpen(true);
+  // Define reviews for two rows
+  const reviewsRow1 = [
+    { name: "John Doe", text: "Learnly transformed my learning experience with its personalized approach!" },
+    { name: "Jane Smith", text: "The doubt support feature is a game-changer. I got help exactly when I needed it." },
+    { name: "Alex Brown", text: "The customized learning paths made studying so much more efficient!" },
+    { name: "Emily Davis", text: "Interactive quizzes kept me engaged and helped me master concepts." },
+    { name: "Michael Chen", text: "The community forums are amazing for connecting with other learners!" },
+  ];
 
-  // Scroll reviews on mouse wheel when hovering
-  const reviewsRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
-      if (reviewsRef.current) {
-        e.preventDefault();
-        const scrollAmount = e.deltaY * 0.5;
-        reviewsRef.current.scrollLeft += scrollAmount;
-      }
-    };
-
-    const reviewsElement = reviewsRef.current;
-    if (reviewsElement) {
-      reviewsElement.addEventListener('wheel', handleWheel, { passive: false });
-    }
-
-    return () => {
-      if (reviewsElement) {
-        reviewsElement.removeEventListener('wheel', handleWheel);
-      }
-    };
-  }, []);
+  const reviewsRow2 = [
+    { name: "Sarah Wilson", text: "Learnly's intuitive design made learning fun and stress-free." },
+    { name: "David Lee", text: "The platform's flexibility allowed me to learn at my own pace." },
+    { name: "Laura Martinez", text: "I improved my skills significantly thanks to Learnly's resources." },
+    { name: "Chris Taylor", text: "The engaging content and support made learning enjoyable." },
+    { name: "Anna Patel", text: "Learnly helped me achieve my learning goals faster than expected!" },
+  ];
 
   return (
-    <div className={`${isDarkMode ? 'bg-gray-900 text-white' : 'bg-blue-50 text-gray-900'} min-h-screen transition-colors duration-300`}>
+    <div className={`${isDarkMode ? 'bg-gray-900 text-white' : 'bg-blue-50 text-gray-900'} transition-colors duration-300`}>
       <Toaster position="top-right" />
       {/* Navbar Separator */}
       <div className="sticky top-0 z-50 bg-inherit">
@@ -58,7 +52,7 @@ const Landing: React.FC = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1 }}
-        className="min-h-screen flex flex-col md:flex-row justify-center items-center px-4 max-w-6xl mx-auto"
+        className="h-auto flex flex-col md:flex-row justify-center items-center px-4 max-w-6xl mx-auto pb-10"
       >
         {/* Left Section for Lottie Animation */}
         <motion.div
@@ -68,13 +62,13 @@ const Landing: React.FC = () => {
           className="w-full md:w-1/2 flex justify-center items-center"
         >
           <DotLottieReact
-          src="https://lottie.host/0b0c10ae-39a2-4281-a5ae-136ea07416dd/aJeY1bv0i6.lottie"
-          loop
-          autoplay
-          className="h-96 w-96 sm:h-[600px] sm:w-[600px]"
+            src="https://lottie.host/0b0c10ae-39a2-4281-a5ae-136ea07416dd/aJeY1bv0i6.lottie"
+            loop
+            autoplay
+            className="h-[500px] w-[500px] sm:h-[700px] sm:w-[700px] md:h-[800px] md:w-[800px]"
           />
         </motion.div>
-        {/* Right Section for Text and Button */}
+        {/* Right Section for Text and Buttons */}
         <div className="w-full md:w-1/2 flex flex-col justify-center items-center md:items-start text-center md:text-left">
           <h1 className="text-5xl md:text-7xl font-bold mb-4">
             Welcome to <Typewriter text="Learnly" delay={100} />
@@ -82,19 +76,32 @@ const Landing: React.FC = () => {
           <p className="text-xl md:text-2xl mb-8 max-w-lg">
             Unlock your potential with personalized learning experiences!
           </p>
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={handleModalOpen}
-            className={`px-8 py-4 text-lg font-semibold rounded-full ${isDarkMode ? 'bg-gradient-to-r from-purple-500 to-blue-500' : 'bg-gradient-to-r from-blue-400 to-blue-600'} text-white shadow-lg`}
-          >
-            Get Started
-          </motion.button>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setIsUserModalOpen(true)}
+              className={`px-8 py-4 text-lg font-semibold rounded-full ${isDarkMode ? 'bg-gradient-to-r from-purple-500 to-blue-500' : 'bg-gradient-to-r from-blue-400 to-blue-600'} text-white shadow-lg`}
+            >
+              Get Started
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setIsTeacherModalOpen(true)}
+              className={`px-8 py-4 text-lg font-semibold rounded-full ${isDarkMode ? 'bg-gradient-to-r from-green-500 to-teal-500' : 'bg-gradient-to-r from-teal-400 to-green-600'} text-white shadow-lg`}
+            >
+              Get Started as Teacher
+            </motion.button>
+          </div>
         </div>
       </motion.section>
 
+      {/* Separator Between Hero and Features */}
+      <hr className={`${isDarkMode ? 'border-gray-700' : 'border-blue-200'} max-w-6xl mx-auto`} />
+
       {/* Features Section */}
-      <section className="py-20 px-4">
+      <section className={`py-10 px-4 ${isDarkMode ? 'bg-gray-800' : 'bg-blue-100'}`}>
         <h2 className="text-4xl font-bold text-center mb-12">Why Learnly Stands Out</h2>
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           <Feature
@@ -128,71 +135,57 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
-      {/* Reviews Section */}
+      {/* Separator Between Features and Reviews */}
+      <hr className={`${isDarkMode ? 'border-gray-700' : 'border-blue-200'} max-w-6xl mx-auto`} />
+
+      {/* Reviews Section with Marquee Effect */}
       <section className={`py-20 px-4 ${isDarkMode ? 'bg-gray-800' : 'bg-blue-100'}`}>
         <h2 className="text-4xl font-bold text-center mb-12">What Our Users Say</h2>
-        <div ref={reviewsRef} className="flex overflow-x-hidden">
-          <Review
-            name="John Doe"
-            text="Learnly transformed my learning experience with its personalized approach!"
-            isDarkMode={isDarkMode}
-          />
-          <Review
-            name="Jane Smith"
-            text="The doubt support feature is a game-changer. I got help exactly when I needed it."
-            isDarkMode={isDarkMode}
-          />
-          <Review
-            name="Alex Brown"
-            text="The customized learning paths made studying so much more efficient!"
-            isDarkMode={isDarkMode}
-          />
-          <Review
-            name="Emily Davis"
-            text="Interactive quizzes kept me engaged and helped me master concepts."
-            isDarkMode={isDarkMode}
-          />
-          <Review
-            name="Michael Chen"
-            text="The community forums are amazing for connecting with other learners!"
-            isDarkMode={isDarkMode}
-          />
-          <Review
-            name="Sarah Wilson"
-            text="Learnly's intuitive design made learning fun and stress-free."
-            isDarkMode={isDarkMode}
-          />
-          <Review
-            name="David Lee"
-            text="The platform's flexibility allowed me to learn at my own pace."
-            isDarkMode={isDarkMode}
-          />
-          <Review
-            name="Laura Martinez"
-            text="I improved my skills significantly thanks to Learnly's resources."
-            isDarkMode={isDarkMode}
-          />
-          <Review
-            name="Chris Taylor"
-            text="The engaging content and support made learning enjoyable."
-            isDarkMode={isDarkMode}
-          />
-          <Review
-            name="Anna Patel"
-            text="Learnly helped me achieve my learning goals faster than expected!"
-            isDarkMode={isDarkMode}
-          />
+        <div className="space-y-4">
+          {/* Row 1: Scrolls Right to Left */}
+          <div className="overflow-hidden">
+            <div className="flex flex-nowrap gap-4 animate-marquee-right-to-left">
+              {[...reviewsRow1, ...reviewsRow1].map((review, index) => (
+                <div key={`row1-${index}`} className="flex-shrink-0">
+                  <Review
+                    name={review.name}
+                    text={review.text}
+                    isDarkMode={isDarkMode}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Row 2: Scrolls Left to Right */}
+          <div className="overflow-hidden">
+            <div className="flex flex-nowrap gap-4 animate-marquee-left-to-right">
+              {[...reviewsRow2, ...reviewsRow2].map((review, index) => (
+                <div key={`row2-${index}`} className="flex-shrink-0">
+                  <Review
+                    name={review.name}
+                    text={review.text}
+                    isDarkMode={isDarkMode}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Footer Section */}
       <Footer isDarkMode={isDarkMode} />
 
-      {/* Get Started Popup */}
+      {/* Popups */}
       <GetStartedPopup
         isDarkMode={isDarkMode}
-        isModalOpen={isModalOpen}
-        setIsModalOpen={setIsModalOpen}
+        isModalOpen={isUserModalOpen}
+        setIsModalOpen={setIsUserModalOpen}
+      />
+      <TeacherGetStartedPopup
+        isDarkMode={isDarkMode}
+        isModalOpen={isTeacherModalOpen}
+        setIsModalOpen={setIsTeacherModalOpen}
       />
     </div>
   );

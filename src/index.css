@@ -1,3 +1,34 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+/* Marquee Animation for Right to Left */
+@keyframes marquee-right-to-left {
+    0% {
+      transform: translateX(0%);
+    }
+    100% {
+      transform: translateX(-100%);
+    }
+  }
+  
+  .animate-marquee-right-to-left {
+    animation: marquee-right-to-left 30s linear infinite;
+    min-width: max-content;
+  }
+  
+  /* Marquee Animation for Left to Right */
+  @keyframes marquee-left-to-right {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(0%);
+    }
+  }
+  
+  .animate-marquee-left-to-right {
+    animation: marquee-left-to-right 30s linear infinite;
+    min-width: max-content;
+  }

@@ -1,20 +1,21 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { signup, signin, googleAuth } from '../../utils/api';
+import { teacherSignup, teacherSignin, teacherGoogleAuth } from '../../utils/api';
 import { toast } from 'react-hot-toast';
 import Loading from '../custom/Loading';
 
-interface GetStartedPopupProps {
+interface TeacherGetStartedPopupProps {
   isDarkMode: boolean;
   isModalOpen: boolean;
   setIsModalOpen: (open: boolean) => void;
 }
 
-const GetStartedPopup: React.FC<GetStartedPopupProps> = ({ isDarkMode, isModalOpen, setIsModalOpen }) => {
+const TeacherGetStartedPopup: React.FC<TeacherGetStartedPopupProps> = ({ isDarkMode, isModalOpen, setIsModalOpen }) => {
   const [isSignup, setIsSignup] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -22,6 +23,7 @@ const GetStartedPopup: React.FC<GetStartedPopupProps> = ({ isDarkMode, isModalOp
     setIsModalOpen(false);
     setEmail('');
     setPassword('');
+    setName('');
     setIsLoading(false);
   };
 
@@ -30,12 +32,12 @@ const GetStartedPopup: React.FC<GetStartedPopupProps> = ({ isDarkMode, isModalOp
     setIsLoading(true);
     try {
       if (isSignup) {
-        await signup(email, password);
+        await teacherSignup(email, password, name);
         await new Promise((resolve) => setTimeout(resolve, 1000));
         toast.custom(
           (t) => (
             <div className={`max-w-md w-full p-4 rounded-lg shadow-md ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-blue-50 text-gray-900'} relative overflow-hidden`}>
-              <p>User created, please verify your email</p>
+              <p>Teacher created, please verify your email</p>
               <motion.div
                 initial={{ width: '0%' }}
                 animate={{ width: '100%' }}
@@ -47,7 +49,7 @@ const GetStartedPopup: React.FC<GetStartedPopupProps> = ({ isDarkMode, isModalOp
           { duration: 3000 }
         );
       } else {
-        const response = await signin(email, password);
+        const response = await teacherSignin(email, password);
         await new Promise((resolve) => setTimeout(resolve, 1000));
         toast.custom(
           (t) => (
@@ -78,15 +80,15 @@ const GetStartedPopup: React.FC<GetStartedPopupProps> = ({ isDarkMode, isModalOp
               animate={{ width: '100%' }}
               transition={{ duration: 3 }}
               className="absolute bottom-0 left-0 h-1 bg-red-500"
-            />
-          </div>
-        ),
-        { duration: 3000 }
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+              />
+            </div>
+          ),
+          { duration: 3000 }
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
   return (
     <>
@@ -102,7 +104,6 @@ const GetStartedPopup: React.FC<GetStartedPopupProps> = ({ isDarkMode, isModalOp
             transition={{ duration: 0.3 }}
             className={`p-6 rounded-2xl max-w-md w-full ${isDarkMode ? 'bg-gray-800' : 'bg-blue-50'} shadow-2xl relative`}
           >
-            {/* Sliding Tabs */}
             <div className="relative flex justify-between mb-6">
               <div className={`w-full flex rounded-full p-1 ${isDarkMode ? 'bg-gray-700' : 'bg-blue-200'}`}>
                 <motion.button
@@ -118,7 +119,7 @@ const GetStartedPopup: React.FC<GetStartedPopupProps> = ({ isDarkMode, isModalOp
                   Sign In
                 </motion.button>
                 <motion.div
-                  className={`absolute top-1 bottom-1 rounded-full ${isDarkMode ? 'bg-purple-500' : 'bg-blue-500'}`}
+                  className={`absolute top-1 bottom-1 rounded-full ${isDarkMode ? 'bg-green-500' : 'bg-teal-500'}`}
                   initial={false}
                   animate={{ x: isSignup ? '0%' : '100%' }}
                   transition={{ duration: 0.3 }}
@@ -126,8 +127,6 @@ const GetStartedPopup: React.FC<GetStartedPopupProps> = ({ isDarkMode, isModalOp
                 />
               </div>
             </div>
-
-            {/* Form with Transition and Loading Animation */}
             <motion.div
               key={isSignup ? 'signup' : 'signin'}
               initial={{ opacity: 0, x: isSignup ? 20 : -20 }}
@@ -137,6 +136,22 @@ const GetStartedPopup: React.FC<GetStartedPopupProps> = ({ isDarkMode, isModalOp
               className="space-y-4 relative"
             >
               <form onSubmit={handleSubmit} className="space-y-4">
+                {isSignup && (
+                  <div>
+                    <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-1`}>
+                      Name
+                    </label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Enter your name"
+                      required
+                      disabled={isLoading}
+                      className={`w-full p-3 rounded-lg ${isDarkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-gray-900 border-blue-200'} border focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-green-500' : 'focus:ring-teal-500'} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    />
+                  </div>
+                )}
                 <div>
                   <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-1`}>
                     Email
@@ -148,7 +163,7 @@ const GetStartedPopup: React.FC<GetStartedPopupProps> = ({ isDarkMode, isModalOp
                     placeholder="Enter your email"
                     required
                     disabled={isLoading}
-                    className={`w-full p-3 rounded-lg ${isDarkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-gray-900 border-blue-200'} border focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-purple-500' : 'focus:ring-blue-500'} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`w-full p-3 rounded-lg ${isDarkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-gray-900 border-blue-200'} border focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-green-500' : 'focus:ring-teal-500'} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                   />
                 </div>
                 <div>
@@ -162,7 +177,7 @@ const GetStartedPopup: React.FC<GetStartedPopupProps> = ({ isDarkMode, isModalOp
                     placeholder="Enter your password"
                     required
                     disabled={isLoading}
-                    className={`w-full p-3 rounded-lg ${isDarkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-gray-900 border-blue-200'} border focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-purple-500' : 'focus:ring-blue-500'} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`w-full p-3 rounded-lg ${isDarkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-gray-900 border-blue-200'} border focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-green-500' : 'focus:ring-teal-500'} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                   />
                 </div>
                 <motion.button
@@ -170,7 +185,7 @@ const GetStartedPopup: React.FC<GetStartedPopupProps> = ({ isDarkMode, isModalOp
                   whileTap={{ scale: isLoading ? 1 : 0.95 }}
                   type="submit"
                   disabled={isLoading}
-                  className={`w-full p-3 rounded-lg ${isDarkMode ? 'bg-purple-500 hover:bg-purple-600' : 'bg-blue-500 hover:bg-blue-600'} text-white font-semibold shadow-md transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`w-full p-3 rounded-lg ${isDarkMode ? 'bg-green-500 hover:bg-green-600' : 'bg-teal-500 hover:bg-teal-600'} text-white font-semibold shadow-md transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   {isSignup ? 'Sign Up' : 'Sign In'}
                 </motion.button>
@@ -178,15 +193,13 @@ const GetStartedPopup: React.FC<GetStartedPopupProps> = ({ isDarkMode, isModalOp
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={googleAuth}
+                onClick={teacherGoogleAuth}
                 className={`w-full p-3 rounded-lg ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white font-semibold shadow-md transition-colors`}
               >
                 Sign in with Google
               </motion.button>
               {isLoading && <Loading />}
             </motion.div>
-
-            {/* Close Button */}
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
@@ -202,4 +215,4 @@ const GetStartedPopup: React.FC<GetStartedPopupProps> = ({ isDarkMode, isModalOp
   );
 };
 
-export default GetStartedPopup;
+export default TeacherGetStartedPopup;

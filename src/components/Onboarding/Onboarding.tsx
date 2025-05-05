@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Toaster, toast } from 'react-hot-toast';
-import { saveOnboarding } from '../utils/api';
-import ThemeChangeButton from './ThemeChangeButton';
-import Loading from './custom/Loading';
+import { saveOnboarding } from '../../utils/api';
+import ThemeChangeButton from '../Reusables/ThemeChangeButton';
+import Loading from '../custom/Loading';
 
 const Onboarding: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);

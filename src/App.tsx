@@ -1,21 +1,19 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Landing from './components/Landing/Landing';
-// import Signup from './components/Signup';
-// import Signin from './components/SignIn';
-import Onboarding from './components/Onboarding';
+import Onboarding from './components/Onboarding/Onboarding';
 import Home from './components/Home/Home';
-import Logout from './components/Logout';
-import VerifyEmail from './components/VerifyEmail';
+import VerifyEmail from './components/Notification/VerifyEmail';
+import TeacherVerifyEmail from './components/Notification/TeacherVerifyEmail';
+import TeacherOnboarding from './components/Onboarding/TeacherOnboarding';
+import TeacherDashboard from './components/Teachersection/TeacherDashboard';
 import PrivateRoute from './components/Home/PrivateRoute';
 
 const App: React.FC = () => {
   return (
-    <Router future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
+    <Router>
       <Routes>
         <Route path="/" element={<Landing />} />
-        {/* <Route path="/signup" element={<Signup />} />
-        <Route path="/login" element={<Signin />} /> */}
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route
           path="/onboarding"
@@ -33,7 +31,26 @@ const App: React.FC = () => {
             </PrivateRoute>
           }
         />
-        <Route path="/logout" element={<Logout />} />
+        <Route
+          path="/teacher/verify-email"
+          element={<TeacherVerifyEmail />}
+        />
+        <Route
+          path="/teacher/onboarding"
+          element={
+            <PrivateRoute requiresOnboarding={true} isTeacher={true}>
+              <TeacherOnboarding />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/teacher/dashboard"
+          element={
+            <PrivateRoute requiresOnboarding={false} isTeacher={true}>
+              <TeacherDashboard />
+            </PrivateRoute>
+          }
+        />
       </Routes>
     </Router>
   );

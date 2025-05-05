@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Toaster, toast } from 'react-hot-toast';
-import { verifyEmail } from '../utils/api';
-import ThemeChangeButton from './ThemeChangeButton';
+import { teacherVerifyEmail } from '../../utils/api';
+import ThemeChangeButton from '../Reusables/ThemeChangeButton'; // Update the path to the correct location
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
-const VerifyEmail: React.FC = () => {
+const TeacherVerifyEmail: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
@@ -18,12 +18,13 @@ const VerifyEmail: React.FC = () => {
   useEffect(() => {
     const verify = async () => {
       try {
-        const response = await verifyEmail();
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // Delay for animation
+        const response = await teacherVerifyEmail();
+        console.log('Teacher verify email response:', response.data);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         toast.custom(
           (t) => (
             <div className={`max-w-md w-full p-4 rounded-lg shadow-md ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-blue-50 text-gray-900'} relative overflow-hidden`}>
-              <p>Email verified! Redirecting to onboarding...</p>
+              <p>{response.data.message}</p>
               <motion.div
                 initial={{ width: '0%' }}
                 animate={{ width: '100%' }}
@@ -35,9 +36,16 @@ const VerifyEmail: React.FC = () => {
           { duration: 3000 }
         );
         setIsLoading(false);
-        setTimeout(() => navigate(response.data.redirect), 2000);
+        setTimeout(() => {
+          console.log('Navigating to:', response.data.redirect);
+          navigate(response.data.redirect);
+        }, 2000);
       } catch (error: any) {
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // Delay for animation
+        console.error('Teacher verify email error:', {
+          message: error.message,
+          response: error.response?.data,
+        });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         toast.custom(
           (t) => (
             <div className={`max-w-md w-full p-4 rounded-lg shadow-md ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-blue-50 text-gray-900'} relative overflow-hidden`}>
@@ -53,6 +61,10 @@ const VerifyEmail: React.FC = () => {
           { duration: 3000 }
         );
         setIsLoading(false);
+        setTimeout(() => {
+          console.log('Redirecting to /teacher/onboarding due to verification failure');
+          navigate('/teacher/onboarding');
+        }, 2000);
       }
     };
 
@@ -62,15 +74,12 @@ const VerifyEmail: React.FC = () => {
   return (
     <div className={`${isDarkMode ? 'bg-gray-900 text-white' : 'bg-blue-50 text-gray-900'} min-h-screen transition-colors duration-300 flex flex-col`}>
       <Toaster position="top-right" />
-      {/* Navbar Separator with Theme Toggle */}
       <div className="sticky top-0 z-50 bg-inherit">
         <div className="flex justify-end p-4">
           <ThemeChangeButton isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
         </div>
         <hr className={`${isDarkMode ? 'border-gray-700' : 'border-blue-200'}`} />
       </div>
-
-      {/* Verification Content */}
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
@@ -78,17 +87,16 @@ const VerifyEmail: React.FC = () => {
         className="flex-grow flex items-center justify-center px-4"
       >
         <div className={`p-8 rounded-2xl shadow-2xl ${isDarkMode ? 'bg-gray-800' : 'bg-blue-50'} max-w-md w-full text-center relative`}>
-          <h2 className="text-3xl font-bold mb-4">Email Verification</h2>
+          <h2 className="text-3xl font-bold mb-4">Teacher Email Verification</h2>
           {isLoading && (
             <div className="mt-4">
-              {/* Placeholder for your custom animation */}
-              <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              <DotLottieReact
-                src="https://lottie.host/eccf304b-d6ec-4b40-97d0-6dece3fc018d/3w7xHv2HHF.lottie"
-                loop
-              autoplay
-              />
-              </p>
+              <div className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                <DotLottieReact
+                  src="https://lottie.host/eccf304b-d6ec-4b40-97d0-6dece3fc018d/3w7xHv2HHF.lottie"
+                  loop
+                  autoplay
+                />
+              </div>
             </div>
           )}
         </div>
@@ -97,4 +105,4 @@ const VerifyEmail: React.FC = () => {
   );
 };
 
-export default VerifyEmail;
+export default TeacherVerifyEmail;

@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Toaster, toast } from 'react-hot-toast';
 import { logout } from '../../utils/api';
-import Navbar from '../Navbar';
-import Sidebar from '../Sidebar';
+import Navbar from '../Reusables/Navbar';
+import Sidebar from '../Reusables/Sidebar';
 
 const Home: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
