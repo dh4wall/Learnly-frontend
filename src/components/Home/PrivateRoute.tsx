@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { verifyToken } from '../../utils/api';
+import Loading from '../custom/Loading';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -25,12 +26,14 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, requiresOnboardin
   }, []);
 
   if (isAuthenticated === null) {
-    return <div>Loading...</div>;
+    return <div className='center  items-center justify-center h-screen'>
+      <Loading/>
+    </div>;
   }
 
   if (!isAuthenticated) {
     return <Navigate to="/" />;
-  }
+  } 
 
   if (requiresOnboarding && !isNew) {
     return <Navigate to="/home" />;
