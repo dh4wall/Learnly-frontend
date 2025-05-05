@@ -1,7 +1,8 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ]
+  "extends": "./tsconfig.app.json",  // or whatever base config you use
+  "compilerOptions": {
+    "types": ["vite/client"],
+    // other options...
+  },
+  "include": ["src"]
 }
