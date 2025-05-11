@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from 'react-hot-toast';
 
 const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 const AUTH_URL = `${BACKEND_URL}/auth`;
@@ -9,6 +10,24 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// Handle errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const message = error.response?.data?.message || error.response?.data?.error || 'An error occurred';
+    if (error.response?.status !== 401) {
+      toast.error(message);
+    }
+    console.error('API error:', {
+      status: error.response?.status,
+      message,
+      data: error.response?.data,
+    });
+    return Promise.reject(error);
+  }
+);
+
+// Existing Auth Functions
 export const signup = async (email: string, password: string) => {
   try {
     const response = await api.post('/auth/signup', { email, password });
@@ -101,6 +120,7 @@ export const verifyToken = async () => {
   }
 };
 
+// Teacher Auth Functions
 export const teacherSignup = async (email: string, password: string, name: string) => {
   try {
     const response = await api.post('/teacher/signup', { email, password, name });
@@ -186,6 +206,67 @@ export const verifyTeacherToken = async () => {
     return response;
   } catch (error: any) {
     console.error('verifyTeacherToken error:', {
+      message: error.message,
+      response: error.response?.data,
+    });
+    throw error;
+  }
+};
+
+// Course Management Functions
+export const fetchTeacherCourses = async () => {
+  try {
+    const response = await api.get('/courses');
+    console.log('fetchTeacherCourses response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('fetchTeacherCourses error:', {
+      message: error.message,
+      response: error.response?.data,
+    });
+    throw error;
+  }
+};
+
+export const createCourse = async (data: FormData) => {
+  try {
+    const response = await api.post('/courses', data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    console.log('createCourse response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('createCourse error:', {
+      message: error.message,
+      response: error.response?.data,
+    });
+    throw error;
+  }
+};
+
+export const createDivision = async (courseId: number, title: string, order: number) => {
+  try {
+    const response = await api.post('/divisions', { courseId, title, order });
+    console.log('createDivision response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('createDivision error:', {
+      message: error.message,
+      response: error.response?.data,
+    });
+    throw error;
+  }
+};
+
+export const createContentBatch = async (data: FormData) => {
+  try {
+    const response = await api.post('/content/batch', data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    console.log('createContentBatch response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('createContentBatch error:', {
       message: error.message,
       response: error.response?.data,
     });

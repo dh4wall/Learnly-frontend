@@ -8,6 +8,7 @@ import TeacherVerifyEmail from './components/Notification/TeacherVerifyEmail';
 import TeacherOnboarding from './components/Onboarding/TeacherOnboarding';
 import TeacherDashboard from './components/Teachersection/TeacherDashboard';
 import PrivateRoute from './components/Home/PrivateRoute';
+import CourseCreator from './components/Teachersection/CreateCourse';
 
 const App: React.FC = () => {
   return (
@@ -51,7 +52,19 @@ const App: React.FC = () => {
             </PrivateRoute>
           }
         />
+
+
+      <Route 
+      path="/courses/create" 
+      element={
+        <PrivateRoute requiresOnboarding={false} isTeacher={true}>
+        <CourseCreator />
+        </PrivateRoute>
+        } 
+      />
       </Routes>
+
+      
     </Router>
   );
 };
