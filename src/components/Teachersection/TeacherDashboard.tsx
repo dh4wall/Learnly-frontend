@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Toaster, toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import { teacherLogout, fetchTeacherCourses, verifyTeacherToken } from '../../utils/api';
+import { teacherLogout, fetchTeacherCourses, verifyTeacherToken } from '../../utils/api'
 import ThemeChangeButton from '../Reusables/ThemeChangeButton';
 import Navbar from '../Reusables/TeacherNavbar';
 import Sidebar from '../Reusables/TeacherSidebar';

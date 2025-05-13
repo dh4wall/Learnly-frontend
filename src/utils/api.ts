@@ -228,10 +228,16 @@ export const fetchTeacherCourses = async () => {
   }
 };
 
-export const createCourse = async (data: FormData) => {
+export const createCourse = async (formData: FormData, onProgress?: (progress: number) => void) => {
   try {
-    const response = await api.post('/courses', data, {
+    const response = await api.post('/courses', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total) {
+          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress?.(percent);
+        }
+      },
     });
     console.log('createCourse response:', response.data);
     return response.data;
@@ -258,15 +264,50 @@ export const createDivision = async (courseId: number, title: string, order: num
   }
 };
 
-export const createContentBatch = async (data: FormData) => {
+export const createContentBatch = async (data: FormData, onProgress?: (progress: number) => void) => {
   try {
     const response = await api.post('/content/batch', data, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total) {
+          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress?.(percent);
+        }
+      },
     });
     console.log('createContentBatch response:', response.data);
     return response.data;
   } catch (error: any) {
     console.error('createContentBatch error:', {
+      message: error.message,
+      response: error.response?.data,
+    });
+    throw error;
+  }
+};
+
+// New Functions for Viewing Courses
+export const fetchDivisions = async (courseId: number) => {
+  try {
+    const response = await api.get(`/divisions?courseId=${courseId}`);
+    console.log('fetchDivisions response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('fetchDivisions error:', {
+      message: error.message,
+      response: error.response?.data,
+    });
+    throw error;
+  }
+};
+
+export const fetchContents = async (divisionId: number) => {
+  try {
+    const response = await api.get(`/content?divisionId=${divisionId}`);
+    console.log('fetchContents response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('fetchContents error:', {
       message: error.message,
       response: error.response?.data,
     });
