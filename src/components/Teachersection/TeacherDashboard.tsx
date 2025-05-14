@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Toaster, toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import { teacherLogout, fetchTeacherCourses, verifyTeacherToken } from '../../utils/api'
-import ThemeChangeButton from '../Reusables/ThemeChangeButton';
+import { teacherLogout, verifyTeacherToken, fetchTeacherDataInBackground } from '../../utils/api';
+import { getCache, initializeCache, setFetchPromise } from '../../utils/cache';
+import Loading from '../custom/Loading';
 import Navbar from '../Reusables/TeacherNavbar';
 import Sidebar from '../Reusables/TeacherSidebar';
 
@@ -18,6 +19,8 @@ const TeacherDashboard: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [teacherId, setTeacherId] = useState<string | null>(null);
+  const [isCacheLoading, setIsCacheLoading] = useState(true);
   const navigate = useNavigate();
   const sidebarRef = useRef<HTMLDivElement>(null);
   const navbarRef = useRef<HTMLDivElement>(null);
@@ -31,9 +34,40 @@ const TeacherDashboard: React.FC = () => {
         if (!verifyResponse.data.authenticated) {
           throw new Error('Not authenticated');
         }
-        console.log('Fetching courses...');
-        const coursesData = await fetchTeacherCourses();
-        setCourses(coursesData);
+        const teacherEmail = verifyResponse.data.email || localStorage.getItem('teacherEmail') || 'teacher';
+        setTeacherId(teacherEmail);
+
+        // Initialize cache
+        initializeCache(teacherEmail);
+        let cache = getCache(teacherEmail);
+        if (!cache) {
+          console.error('Cache initialization failed for teacher:', teacherEmail);
+          throw new Error('Cache initialization failed');
+        }
+
+        if (cache.isCachePopulated) {
+          console.log('Using populated cache:', cache.courses);
+          setCourses(cache.courses);
+          setIsCacheLoading(false);
+        } else {
+          if (!cache.fetchPromise) {
+            console.log('Starting background fetch for teacher:', teacherEmail);
+            const fetchPromise = fetchTeacherDataInBackground(teacherEmail);
+            setFetchPromise(teacherEmail, fetchPromise);
+            cache = getCache(teacherEmail)!;
+          }
+          console.log('Waiting for background fetch...');
+          await cache.fetchPromise;
+          const updatedCache = getCache(teacherEmail);
+          if (updatedCache) {
+            console.log('Cache populated:', updatedCache.courses);
+            setCourses(updatedCache.courses);
+          } else {
+            console.error('Cache missing after fetch');
+            throw new Error('Cache missing after fetch');
+          }
+          setIsCacheLoading(false);
+        }
       } catch (error: any) {
         console.error('Dashboard error:', {
           message: error.message,
@@ -44,6 +78,7 @@ const TeacherDashboard: React.FC = () => {
           navigate('/login');
         } else {
           toast.error(error.response?.data?.message || 'Failed to load dashboard');
+          setIsCacheLoading(false);
         }
       }
     };
@@ -83,6 +118,7 @@ const TeacherDashboard: React.FC = () => {
   const handleLogout = async () => {
     try {
       await teacherLogout();
+      localStorage.removeItem('teacherEmail');
       toast.success('Logged out successfully');
       navigate('/login');
     } catch (error: any) {
@@ -93,6 +129,14 @@ const TeacherDashboard: React.FC = () => {
       toast.error('Error logging out');
     }
   };
+
+  if (isCacheLoading) {
+    return (
+      <div className={`${isDarkMode ? 'bg-gray-900' : 'bg-blue-50'} min-h-screen flex justify-center items-center`}>
+        <Loading />
+      </div>
+    );
+  }
 
   return (
     <div className={`${isDarkMode ? 'bg-gray-900 text-white' : 'bg-blue-50 text-gray-900'} min-h-screen transition-colors duration-300 flex flex-col`}>

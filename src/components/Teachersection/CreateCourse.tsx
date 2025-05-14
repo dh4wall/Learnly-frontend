@@ -77,8 +77,15 @@ const CourseCreator: React.FC = () => {
         maxWidthOrHeight: 1920, // Resize to max 1920px
         useWebWorker: true,
       };
-      const compressedFile = await imageCompression(file, options);
-      console.log(`Compressed ${file.name}: ${file.size / 1024 / 1024}MB to ${compressedFile.size / 1024 / 1024}MB`);
+      const compressedBlob = await imageCompression(file, options);
+      console.log(`Compressed ${file.name}: ${file.size / 1024 / 1024}MB to ${compressedBlob.size / 1024 / 1024}MB`);
+      // Convert Blob to File with original type and name
+      const compressedFile = new File([compressedBlob], file.name, { type: file.type });
+      console.log('Compressed file metadata:', {
+        name: compressedFile.name,
+        type: compressedFile.type,
+        size: compressedFile.size,
+      });
       return compressedFile;
     } catch (error) {
       console.error('Image compression error:', error);
@@ -102,7 +109,7 @@ const CourseCreator: React.FC = () => {
       const formData = new FormData();
       formData.append('name', course.name);
       formData.append('price', course.price);
-      formData.append('thumbnailFile', compressedThumbnail);
+      formData.append('thumbnailFile', compressedThumbnail, compressedThumbnail.name); // Ensure name is included
       console.log('Creating course with formData:', {
         name: course.name,
         price: course.price,
@@ -122,7 +129,7 @@ const CourseCreator: React.FC = () => {
         message: error.message,
         response: error.response?.data,
       });
-      toast.error(error.response?.data?.error || 'Failed to create course');
+      toast.error(error.response?.data?.message || 'Failed to create course');
     } finally {
       setIsCourseUploading(false);
       setUploadProgress({ ...uploadProgress, course: 0 });
@@ -151,7 +158,7 @@ const CourseCreator: React.FC = () => {
         message: error.message,
         response: error.response?.data,
       });
-      toast.error(error.response?.data?.error || 'Failed to create division');
+      toast.error(error.response?.data?.message || 'Failed to create division');
     } finally {
       setIsDivisionLoading(false);
     }
@@ -169,11 +176,14 @@ const CourseCreator: React.FC = () => {
     }
     setIsContentUploading(true);
     try {
-      const compressedFiles = await Promise.all(content.files.map(compressImage));
+      const compressedFiles = await Promise.all(content.files.map(async (file) => {
+        const compressedFile = await compressImage(file);
+        return new File([compressedFile], file.name, { type: file.type });
+      }));
       const formData = new FormData();
       formData.append('divisionId', content.divisionId);
       compressedFiles.forEach((file, i) => {
-        formData.append('files', file);
+        formData.append('files', file, file.name);
         formData.append('titles', content.titles[i] || file.name);
         formData.append('durations', content.durations[i] || '0');
       });
@@ -186,7 +196,7 @@ const CourseCreator: React.FC = () => {
         message: error.message,
         response: error.response?.data,
       });
-      toast.error(error.response?.data?.error || 'Failed to upload content');
+      toast.error(error.response?.data?.message || 'Failed to upload content');
     } finally {
       setIsContentUploading(false);
       setUploadProgress({ ...uploadProgress, content: 0 });

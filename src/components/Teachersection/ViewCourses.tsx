@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Toaster, toast } from 'react-hot-toast';
 import { useNavigate, useParams, Routes, Route, Link } from 'react-router-dom';
-import { fetchTeacherCourses, fetchDivisions, fetchContents } from '../../utils/api';
+import { verifyTeacherToken, fetchTeacherDataInBackground } from '../../utils/api';
+import { getCache, initializeCache, setFetchPromise } from '../../utils/cache';
+import Loading from '../custom/Loading';
 import Navbar from '../Reusables/TeacherNavbar';
 import Sidebar from '../Reusables/TeacherSidebar';
 
-interface Course {
+interface Course {  
   id: number;
   name: string;
   thumbnailUrl?: string;
@@ -27,68 +29,49 @@ interface Content {
   duration?: number;
 }
 
-const CoursesList: React.FC = () => {
+const CoursesList: React.FC<{ teacherId: string }> = ({ teacherId }) => {
   const [courses, setCourses] = useState<Course[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchCourses = async () => {
+    const loadCourses = async () => {
       try {
-        const data = await fetchTeacherCourses();
-        setCourses(data);
+        // Initialize cache
+        initializeCache(teacherId);
+        let cache = getCache(teacherId);
+        if (!cache) {
+          console.error('Cache initialization failed for teacher:', teacherId);
+          throw new Error('Cache initialization failed');
+        }
+
+        if (cache.isCachePopulated) {
+          console.log('Using cached courses:', cache.courses);
+          setCourses(cache.courses);
+        } else {
+          if (!cache.fetchPromise) {
+            console.log('Starting background fetch for teacher:', teacherId);
+            const fetchPromise = fetchTeacherDataInBackground(teacherId);
+            setFetchPromise(teacherId, fetchPromise);
+            cache = getCache(teacherId)!;
+          }
+          console.log('Waiting for background fetch in CoursesList...');
+          await cache.fetchPromise;
+          const updatedCache = getCache(teacherId);
+          if (updatedCache) {
+            console.log('Cache populated:', updatedCache.courses);
+            setCourses(updatedCache.courses);
+          } else {
+            throw new Error('Cache missing after fetch');
+          }
+        }
       } catch (error: any) {
-        console.error('fetchTeacherCourses error:', error.response?.data || error.message);
-        setError('Failed to load courses. Please try again.');
-        // Don't redirect; show error on page
-      } finally {
-        setIsLoading(false);
+        console.error('CoursesList error:', error);
+        toast.error('Failed to load courses');
+        navigate('/teacher/dashboard');
       }
     };
-    fetchCourses();
-  }, []);
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <svg
-          className="animate-spin h-8 w-8 text-blue-500"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            className="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="4"
-          ></circle>
-          <path
-            className="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-          ></path>
-        </svg>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center text-red-500 dark:text-red-400">
-        {error}{' '}
-        <button
-          onClick={() => window.location.reload()}
-          className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
+    loadCourses();
+  }, [teacherId, navigate]);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -120,62 +103,56 @@ const CoursesList: React.FC = () => {
   );
 };
 
-const CourseDetail: React.FC = () => {
+const CourseDetail: React.FC<{ teacherId: string }> = ({ teacherId }) => {
   const { courseId } = useParams<{ courseId: string }>();
   const [divisions, setDivisions] = useState<Division[]>([]);
   const [courseName, setCourseName] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!courseId) {
-        toast.error('Invalid course ID');
-        navigate('/courses');
-        return;
-      }
+    const loadDivisions = async () => {
       try {
-        const divisionsData = await fetchDivisions(parseInt(courseId));
-        const courses = await fetchTeacherCourses();
-        const course = courses.find((c: Course) => c.id === parseInt(courseId));
-        setDivisions(divisionsData);
-        setCourseName(course?.name || 'Course');
-      } catch (error) {
+        if (!courseId) {
+          throw new Error('Invalid course ID');
+        }
+        // Initialize cache
+        initializeCache(teacherId);
+        let cache = getCache(teacherId);
+        if (!cache) {
+          console.error('Cache initialization failed for teacher:', teacherId);
+          throw new Error('Cache initialization failed');
+        }
+
+        if (cache.isCachePopulated) {
+          const course = cache.courses.find((c) => c.id === parseInt(courseId));
+          setCourseName(course?.name || 'Course');
+          setDivisions(cache.divisions[parseInt(courseId)] || []);
+        } else {
+          if (!cache.fetchPromise) {
+            console.log('Starting background fetch for teacher:', teacherId);
+            const fetchPromise = fetchTeacherDataInBackground(teacherId);
+            setFetchPromise(teacherId, fetchPromise);
+            cache = getCache(teacherId)!;
+          }
+          console.log('Waiting for background fetch in CourseDetail...');
+          await cache.fetchPromise;
+          const updatedCache = getCache(teacherId);
+          if (updatedCache) {
+            const course = updatedCache.courses.find((c) => c.id === parseInt(courseId));
+            setCourseName(course?.name || 'Course');
+            setDivisions(updatedCache.divisions[parseInt(courseId)] || []);
+          } else {
+            throw new Error('Cache missing after fetch');
+          }
+        }
+      } catch (error: any) {
+        console.error('CourseDetail error:', error);
         toast.error('Failed to load chapters');
         navigate('/courses');
-      } finally {
-        setIsLoading(false);
       }
     };
-    fetchData();
-  }, [courseId, navigate]);
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <svg
-          className="animate-spin h-8 w-8 text-blue-500"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            className="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="4"
-          ></circle>
-          <path
-            className="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-          ></path>
-        </svg>
-      </div>
-    );
-  }
+    loadDivisions();
+  }, [courseId, navigate, teacherId]);
 
   return (
     <div>
@@ -212,7 +189,6 @@ const CourseDetail: React.FC = () => {
                   </h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     Chapter {division.order}
-处理
                   </p>
                 </div>
                 <svg
@@ -237,35 +213,58 @@ const CourseDetail: React.FC = () => {
   );
 };
 
-const DivisionDetail: React.FC = () => {
+const DivisionDetail: React.FC<{ teacherId: string }> = ({ teacherId }) => {
   const { courseId, divisionId } = useParams<{ courseId: string; divisionId: string }>();
   const [contents, setContents] = useState<Content[]>([]);
   const [divisionTitle, setDivisionTitle] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!divisionId || !courseId) {
-        toast.error('Invalid chapter or course ID');
-        navigate('/courses');
-        return;
-      }
+    const loadContents = async () => {
       try {
-        const contentsData = await fetchContents(parseInt(divisionId));
-        const divisions = await fetchDivisions(parseInt(courseId));
-        const division = divisions.find((d: Division) => d.id === parseInt(divisionId));
-        setContents(contentsData);
-        setDivisionTitle(division?.title || 'Chapter');
-      } catch (error) {
+        if (!divisionId || !courseId) {
+          throw new Error('Invalid chapter or course ID');
+        }
+        // Initialize cache
+        initializeCache(teacherId);
+        let cache = getCache(teacherId);
+        if (!cache) {
+          console.error('Cache initialization failed for teacher:', teacherId);
+          throw new Error('Cache initialization failed');
+        }
+
+        if (cache.isCachePopulated) {
+          const divisions = cache.divisions[parseInt(courseId)] || [];
+          const division = divisions.find((d) => d.id === parseInt(divisionId));
+          setDivisionTitle(division?.title || 'Chapter');
+          setContents(cache.contents[parseInt(divisionId)] || []);
+        } else {
+          if (!cache.fetchPromise) {
+            console.log('Starting background fetch for teacher:', teacherId);
+            const fetchPromise = fetchTeacherDataInBackground(teacherId);
+            setFetchPromise(teacherId, fetchPromise);
+            cache = getCache(teacherId)!;
+          }
+          console.log('Waiting for background fetch in DivisionDetail...');
+          await cache.fetchPromise;
+          const updatedCache = getCache(teacherId);
+          if (updatedCache) {
+            const divisions = updatedCache.divisions[parseInt(courseId)] || [];
+            const division = divisions.find((d) => d.id === parseInt(divisionId));
+            setDivisionTitle(division?.title || 'Chapter');
+            setContents(updatedCache.contents[parseInt(divisionId)] || []);
+          } else {
+            throw new Error('Cache missing after fetch');
+          }
+        }
+      } catch (error: any) {
+        console.error('DivisionDetail error:', error);
         toast.error('Failed to load contents');
         navigate(`/courses/${courseId}`);
-      } finally {
-        setIsLoading(false);
       }
     };
-    fetchData();
-  }, [courseId, divisionId, navigate]);
+    loadContents();
+  }, [courseId, divisionId, navigate, teacherId]);
 
   const getFileIcon = (type: Content['type']) => {
     switch (type) {
@@ -310,33 +309,6 @@ const DivisionDetail: React.FC = () => {
         );
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <svg
-          className="animate-spin h-8 w-8 text-blue-500"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            className="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="4"
-          ></circle>
-          <path
-            className="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-          ></path>
-        </svg>
-      </div>
-    );
-  }
 
   return (
     <div>
@@ -391,7 +363,26 @@ const DivisionDetail: React.FC = () => {
 const ViewCourses: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [teacherId, setTeacherId] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const verify = async () => {
+      try {
+        const verifyResponse = await verifyTeacherToken();
+        if (!verifyResponse.data.authenticated) {
+          throw new Error('Not authenticated');
+        }
+        const teacherEmail = verifyResponse.data.email || localStorage.getItem('teacherEmail') || 'teacher';
+        setTeacherId(teacherEmail);
+      } catch (error: any) {
+        console.error('Verify teacher error:', error);
+        toast.error('Session expired. Please log in again.');
+        navigate('/login');
+      }
+    };
+    verify();
+  }, [navigate]);
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
@@ -404,6 +395,14 @@ const ViewCourses: React.FC = () => {
   const closeSidebar = () => {
     setIsSidebarOpen(false);
   };
+
+  if (!teacherId) {
+    return (
+      <div className={`${isDarkMode ? 'bg-gray-900' : 'bg-blue-50'} min-h-screen flex justify-center items-center`}>
+        <Loading />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -423,9 +422,9 @@ const ViewCourses: React.FC = () => {
         <div className="max-w-7xl mx-auto">
           <h1 className="text-3xl font-bold mb-8">Your Courses</h1>
           <Routes>
-            <Route path="/" element={<CoursesList />} />
-            <Route path="/:courseId" element={<CourseDetail />} />
-            <Route path="/:courseId/divisions/:divisionId" element={<DivisionDetail />} />
+            <Route path="/" element={<CoursesList teacherId={teacherId} />} />
+            <Route path="/:courseId" element={<CourseDetail teacherId={teacherId} />} />
+            <Route path="/:courseId/divisions/:divisionId" element={<DivisionDetail teacherId={teacherId} />} />
           </Routes>
         </div>
       </motion.div>

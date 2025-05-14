@@ -1,5 +1,12 @@
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import {
+  initializeCache,
+  updateCoursesCache,
+  updateDivisionsCache,
+  updateContentsCache,
+  setFetchPromise,
+} from './cache';
 
 const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 const AUTH_URL = `${BACKEND_URL}/auth`;
@@ -10,7 +17,6 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// Handle errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -27,7 +33,6 @@ api.interceptors.response.use(
   }
 );
 
-// Existing Auth Functions
 export const signup = async (email: string, password: string) => {
   try {
     const response = await api.post('/auth/signup', { email, password });
@@ -120,7 +125,6 @@ export const verifyToken = async () => {
   }
 };
 
-// Teacher Auth Functions
 export const teacherSignup = async (email: string, password: string, name: string) => {
   try {
     const response = await api.post('/teacher/signup', { email, password, name });
@@ -153,6 +157,11 @@ export const teacherSignin = async (email: string, password: string) => {
   try {
     const response = await api.post('/teacher/signin', { email, password });
     console.log('teacherSignin response:', response.data);
+    const teacherId = response.data.email || email;
+    localStorage.setItem('teacherEmail', teacherId);
+    initializeCache(teacherId);
+    const fetchPromise = fetchTeacherDataInBackground(teacherId);
+    setFetchPromise(teacherId, fetchPromise);
     return response;
   } catch (error: any) {
     console.error('teacherSignin error:', {
@@ -175,6 +184,11 @@ export const teacherSaveOnboarding = async (data: {
   try {
     const response = await api.post('/teacher/onboarding', data);
     console.log('teacherSaveOnboarding response:', response.data);
+    const teacherId = response.data.email || localStorage.getItem('teacherEmail') || 'teacher';
+    localStorage.setItem('teacherEmail', teacherId);
+    initializeCache(teacherId);
+    const fetchPromise = fetchTeacherDataInBackground(teacherId);
+    setFetchPromise(teacherId, fetchPromise);
     return response;
   } catch (error: any) {
     console.error('teacherSaveOnboarding error:', {
@@ -189,6 +203,7 @@ export const teacherLogout = async () => {
   try {
     const response = await api.post('/teacher/logout');
     console.log('teacherLogout response:', response.data);
+    localStorage.removeItem('teacherEmail');
     return response;
   } catch (error: any) {
     console.error('teacherLogout error:', {
@@ -213,7 +228,6 @@ export const verifyTeacherToken = async () => {
   }
 };
 
-// Course Management Functions
 export const fetchTeacherCourses = async () => {
   try {
     const response = await api.get('/courses');
@@ -230,6 +244,9 @@ export const fetchTeacherCourses = async () => {
 
 export const createCourse = async (formData: FormData, onProgress?: (progress: number) => void) => {
   try {
+    // Log FormData contents for debugging
+    const formDataEntries = Object.fromEntries(formData);
+    console.log('createCourse FormData:', formDataEntries);
     const response = await api.post('/courses', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       onUploadProgress: (progressEvent) => {
@@ -286,7 +303,6 @@ export const createContentBatch = async (data: FormData, onProgress?: (progress:
   }
 };
 
-// New Functions for Viewing Courses
 export const fetchDivisions = async (courseId: number) => {
   try {
     const response = await api.get(`/divisions?courseId=${courseId}`);
@@ -308,6 +324,30 @@ export const fetchContents = async (divisionId: number) => {
     return response.data;
   } catch (error: any) {
     console.error('fetchContents error:', {
+      message: error.message,
+      response: error.response?.data,
+    });
+    throw error;
+  }
+};
+
+export const fetchTeacherDataInBackground = async (teacherId: string) => {
+  try {
+    const courses = await fetchTeacherCourses();
+    updateCoursesCache(teacherId, courses);
+
+    for (const course of courses) {
+      const divisions = await fetchDivisions(course.id);
+      updateDivisionsCache(teacherId, course.id, divisions);
+
+      for (const division of divisions) {
+        const contents = await fetchContents(division.id);
+        updateContentsCache(teacherId, division.id, contents);
+      }
+    }
+    console.log('Background fetch completed for teacher:', teacherId);
+  } catch (error: any) {
+    console.error('Background fetch error:', {
       message: error.message,
       response: error.response?.data,
     });

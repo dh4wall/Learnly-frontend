@@ -23,7 +23,9 @@ const Navbar: React.FC<NavbarProps> = ({ isDarkMode, toggleTheme, toggleSidebar 
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
             </svg>
           </button>
-          <h1 className="text-xl font-semibold">Teacher Dashboard</h1>
+          <button onClick={()=>navigate('/teacher/dashboard')}>
+            <h1 className="text-xl font-semibold">Teacher Dashboard</h1>
+          </button>
         </div>
         <div className="flex items-center space-x-4">
           <button
